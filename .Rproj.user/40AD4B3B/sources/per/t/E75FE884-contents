@@ -1,0 +1,114 @@
+options(max.print = 1e6)
+df<-read.csv("Food_Delivery_Times.csv")
+df
+#The frist step is identifying the duplicates rows
+duplicated(df)
+
+#Their number
+sum(duplicated(df))
+
+#The second step is Data structure
+str(df)
+summary(df)
+#The third step is finding missing values(NA)
+is.na(df) 
+
+#Their number
+sum(is.na(df))
+
+#Delet rows with missing values
+df=na.omit(df)
+df
+
+#Delet empty boxes
+df[df== ""]<-NA
+df
+colSums(is.na(df))
+df=na.omit(df)
+
+#Data type inspection and correction
+
+is.integer(df$Order_ID)
+df$Order_ID=as.integer(df$Order_ID)
+is.integer(df$Order_ID)
+
+is.character(df$Weather)
+df$Weather=as.character(df$Weather)
+is.character(df$Weather)
+
+is.character(df$Traffic_Level)
+df$Traffic_Level=as.character(df$Traffic_Level)
+is.character(df$Traffic_Level)
+
+is.character(df$Time_of_Day)
+df$Time_of_Day=as.character(df$Time_of_Day)
+is.character(df$Time_of_Day)
+
+is.character(df$Vehicle_Type)
+df$Vehicle_Type=as.character(df$Vehicle_Type)
+is.character(df$Vehicle_Type)
+
+is.numeric(df$Distance_km)
+df$Distance_km=as.numeric(df$Distance_km)
+is.numeric(df$Distance_km)
+
+is.integer(df$Preparation_Time_min)
+df$Order_ID=as.integer(df$Preparation_Time_min)
+is.integer(df$Preparation_Time_min)
+
+is.numeric(df$Courier_Experience_yrs)
+df$Courier_Experience_yrs=as.numeric(df$Courier_Experience_yrs)
+is.numeric(df$Courier_Experience_yrs) 
+
+is.integer(df$Delivery_Time_min)
+df$Order_ID=as.integer(df$Delivery_Time_min)
+is.integer(df$Delivery_Time_min)
+
+
+#The fourth step is Handling outliers
+outlier1=boxplot(df$Distance_km)
+outlier1
+outlier2=boxplot(df$Delivery_Time_min)
+outlier2
+outlier3=boxplot(df$Preparation_Time_min)
+outlier3
+outlier4=boxplot(df$Courier_Experience_yrs)
+outlier4
+
+#display outliers records
+df[which(df$Order_ID%in%outlier1),]
+df[which(df$Distance_km%in%outlier2),]
+df[which(df$Courier_Experience_yrs%in%outlier3),]
+
+#Remove outliers
+dd=df[-which(df$Order_ID%in% outlier1),]
+print(outlier1)
+dd=df[-which(df$Distance_km%in% outlier2),]
+print(outlier2)
+dd=df[-which(df$Courier_Experience_yrs%in% outlier3),]
+print(outlier3)
+
+#The%in% operatorin R
+A<-boxplot(df$Order_ID)
+print(A)
+B<-boxplot(df$Distance_km)
+print(B)
+C<-boxplot(df$Preparation_Time_min)
+print(c)
+D<-boxplot(df$Courier_Experience_yrs)
+print(D)
+E<-boxplot(df$Delivery_Time_min)
+print(E)
+#Finish the Data cleaning
+str(dd)
+summary(dd)
+#Delet empty boxes
+#df[df== ""]<-NA
+#df
+#colSums(is.na(df))
+#df=na.omit(df)
+#outlier
+#summary(df$Delivery_Time_min)
+#length(outlier)
+#length(df$Delivery_Time_min)
+#print(outlier)

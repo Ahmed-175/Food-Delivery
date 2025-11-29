@@ -1,0 +1,95 @@
+
+source("R/cleaning.R")
+
+
+
+library(shiny)
+library(bslib)
+
+data <- read.csv("data/Food_Delivery_Times.csv")
+data
+
+c
+
+ui <- page_sidebar(
+  
+  title = "dotR Delivery Analysis",
+  
+  sidebar = sidebar(
+    width = 300,
+    open = "always",
+    
+    h3("⚙️ Controls"),
+    tags$hr(),
+    
+    fileInput("file", "Upload CSV", accept = ".csv"),
+    
+    selectInput("col", "Choose Column", choices = NULL),
+    
+    numericInput("bins", "Number of Bins", value = 15, min = 5, max = 50),
+    
+    actionButton("run", "Generate Plot", class = "btn-primary btn-lg")
+  ),
+  
+  theme = bs_theme(
+    version = 5,
+    bootswatch = "flatly",
+    base_font = font_google("Inter"),
+    heading_font = font_google("Poppins")
+  ),
+  
+  layout_column_wrap(
+    width = 1/2,
+    
+    card(
+      full_screen = TRUE,
+      card_header("📄 Uploaded Data"),
+      tableOutput("data")
+    ),
+    
+    card(
+      full_screen = TRUE,
+      card_header("📊 Histogram"),
+      plotOutput("graph", height = "400px")
+    )
+  )
+)
+
+
+server <- function(input, output, session) {
+  
+  data <- reactive({
+    req(input$file)
+    read.csv(input$file$datapath)
+  })
+  
+  observe({
+    req(data())
+    updateSelectInput(session, "col", choices = names(data()))
+  })
+  
+  output$data <- renderTable({
+    data()
+  })
+
+  
+  output$graph <- renderPlot({
+    req(input$col)
+    req(input$run)
+    data <-  as.data.frame(data());
+    print(length(data))
+    
+    isolate({
+      hist(
+        data()[[input$col]],
+        breaks = input$bins,
+        col = "#4C9ED9",
+        border = "white",
+        main = paste("Distribution of", input$col),
+        xlab = input$col
+      )
+    })
+  })
+
+}
+shinyApp(ui = ui , server= server)
