@@ -17,10 +17,10 @@ clean_data <- function(df) {
 
   df <- na.omit(df)
 
-  out_dist <- boxplot(df$Distance_km, plot = FALSE)$out
-  out_prep <- boxplot(df$Preparation_Time_min, plot = FALSE)$out
-  out_cour <- boxplot(df$Courier_Experience_yrs, plot = FALSE)$out
-  out_del <- boxplot(df$Delivery_Time_min, plot = FALSE)$out
+  out_dist <- boxplot(df$Distance_km)$out
+  out_prep <- boxplot(df$Preparation_Time_min)$out
+  out_cour <- boxplot(df$Courier_Experience_yrs)$out
+  out_del <- boxplot(df$Delivery_Time_min)$out
 
   remove_rows <- unique(c(
     which(df$Distance_km %in% out_dist),
@@ -32,7 +32,7 @@ clean_data <- function(df) {
   df <- df[-remove_rows, ]
 
   df$Speed_kmph <- round((df$Distance_km / df$Delivery_Time_min) * 60, 2)
-  df$Late_Delivery <- ifelse(df$Delivery_Time_min > 30, 1, 0)
+  df$Late_Delivery <- ifelse(df$Delivery_Time_min > 30, "Yes", "No")
 
   print(paste("Rows after cleaning:", nrow(df)))
 

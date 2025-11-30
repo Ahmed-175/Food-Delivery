@@ -1,26 +1,32 @@
+# app.R
 library(shiny)
 library(dplyr)
 library(factoextra)
+library(arules)
 
 source("R/cleaning.R")
 source("R/kmeans.R")
+source("R/apriori.R")
 
 ui <- fluidPage(
   titlePanel("dotR Delivery Analysis"),
   fluidRow(
-    # Sidebar fixed on left
     column(
       width = 3,
       wellPanel(
-        h3("⚙️ Controls"),
+        h3(" Controls"),
         fileInput("file", "Upload CSV", accept = ".csv"),
         selectInput("col", "Choose Column for Histogram", choices = NULL),
         numericInput("bins", "Number of Bins", value = 15, min = 5, max = 50),
         numericInput("k", "Number of Clusters", value = 3, min = 2, max = 10),
-        actionButton("run", "Generate")
+        actionButton("run", "Generate"),
+        hr(),
+        h4("Association Rules Settings"),
+        numericInput("support", "Min Support", value = 0.1, min = 0, max = 1, step = 0.01),
+        numericInput("confidence", "Min Confidence", value = 0.7, min = 0, max = 1, step = 0.01),
+        actionButton("generate_rules", "Generate Rules")
       )
     ),
-    # Main panel with Tabs
     column(
       width = 9,
       tabsetPanel(
@@ -45,6 +51,16 @@ ui <- fluidPage(
           "Cluster Summary",
           h3("Cluster Summary"),
           uiOutput("cluster_summary_ui")
+        ),
+        tabPanel(
+          "Association Rules",
+          h3("Association Rules"),
+          tableOutput("rules_table")
+        ),
+        tabPanel(
+          "Apriori Algorithm",
+          h3("Apriori Algorithm"),
+          tableOutput("apriori")
         )
       )
     )
@@ -90,11 +106,7 @@ server <- function(input, output, session) {
   output$cluster_table <- renderTable({
     req(clusters())
     head(
-      clusters()$data[
-        ,
-        c("Order_ID", "cluster", "Distance_km", "Delivery_Time_min", "Speed_kmph")
-      ],
-      20
+      clusters()$data[, c("Order_ID", "cluster", "Distance_km", "Delivery_Time_min", "Speed_kmph")]
     )
   })
 
@@ -110,7 +122,6 @@ server <- function(input, output, session) {
 
   output$cluster_summary_ui <- renderUI({
     req(clusters())
-
     summary_df <- clusters()$data %>%
       group_by(cluster) %>%
       summarise(
@@ -132,12 +143,47 @@ server <- function(input, output, session) {
           tags$p(paste("Avg Distance:", summary_df$avg_distance[i], "km")),
           tags$p(paste("Avg Prep Time:", summary_df$avg_prep_time[i], "min")),
           tags$p(paste("Avg Experience:", summary_df$avg_experience[i], "yrs")),
-          tags$p(paste("Avg Speed:", summary_df$avg_speed[i], "km/min")),
+          tags$p(paste("Avg Speed:", summary_df$avg_speed[i], "km/h")),
           tags$p(paste("Avg Delivery:", summary_df$avg_delivery[i], "min")),
           tags$p(paste("Number of Orders:", summary_df$n_orders[i]))
         )
       })
     )
+  })
+
+  rules_data <- eventReactive(input$generate_rules, {
+    req(data())
+
+    df_rules <- data()[, c("Weather", "Traffic_Level", "Vehicle_Type", "Late_Delivery")]
+    trans <- as(df_rules, "transactions")
+
+    rules <- apriori(trans,
+      parameter = list(support = input$support, confidence = input$confidence)
+    )
+
+    rules_df <- as(rules, "data.frame")
+    rules_df <- rules_df[, c("rules", "support", "confidence", "lift")]
+    return(rules_df)
+  })
+
+  output$rules_table <- renderTable({
+    rules_data()
+  })
+
+
+  apriori <- reactive({
+    req(clusters())
+    perform_apriori(
+      df = data(),
+      support = 0.01,
+      confidence = 0.4,
+      clusters = clusters()$data$cluster # vector of cluster labels
+    )
+  })
+  output$apriori <- renderTable({
+    req(apriori())
+    df_rules <- as(apriori()$rules, "data.frame")
+    head(df_rules)
   })
 }
 
