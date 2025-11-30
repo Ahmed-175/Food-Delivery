@@ -1,211 +1,33 @@
-# library(dplyr)
-# library(lubridate)
-# library(stringr)
+clean_data <- function(df) {
+  library(dplyr)
 
-# clean_data <- function(
-#   df,
-#   late_threshold = 30,
-#   max_distance_km = 200,
-#   winsorize = TRUE,
-#   verbose = TRUE
-# ) {
-#   log_msgs <- c()
-#   add_log <- function(msg) {
-#     log_msgs <<- c(log_msgs, paste(Sys.time, "-", msg))
-#   }
-
-#   add_log("start cleaning")
-
-#   df <- as.data.frame(df)
-
-#   add_log(sprintf("Initial rows: %d, cols: %d", nrow(df), ncol(df)))
-
-#   names(df) <- (gsub("\\s+", "_", names(df)))
-#   add_log("Normalized column names to lower_snake_case")
-
-#   if (!"order_id" %in% names(df)) {
-#     df$order_id <- as.character((seq_len((nrow(df)))))
-#     add_log("order_id missing: created surrogate IDs")
-#   } else {
-#     df$order_id <- as.character((df$order_id))
-#   }
-#   numeric_cols <- c(
-#     "Distance_km",
-#     "Preparation_Time_min",
-#     "Courier_Experience_yrs",
-#     "Delivery_Time_min"
-#   )
-#   for (col in numeric_cols) {
-#     if (col %in% names(df)) {
-#       df[[col]] <- as.numeric(str_replace_all(as.character(df[[col]], ",", "")))
-#       add_log(paste("Coerced to numeric:", col))
-#     } else {
-#       add_log(paste("Missing expected numeric column:", col))
-#     }
-#   }
-
-#   if ("weather" %in% names(df)) {
-#     df$weather <- as.character(df$weather)
-#     df$weather <- str_trim(tolower(df$weather))
-
-#     df$weather[df$weather %in% c("sunny", "clear", "sun")] <- "clear"
-#     df$weather[df$weather %in% c("rain", "rainy", "raining")] <- "rain"
-#     df$weather[df$weather == ""] <- NA
-#     df$weather <- as.factor(df$weather)
-#     add_log("Normalized weather categories")
-#   }
+  df <- df[!duplicated(df), ]
+  df[df == ""] <- NA
+  df <- na.omit(df)
 
 
-#   if ("traffic_level" %in% names(df)) {
-#     df$traffic_level <- as.character(df$traffic_level)
-#     df$traffic_level <- str_trim(tolower(df$traffic_level))
-#     df$traffic_level[df$traffic_level == ""] <- NA
-#     df$traffic_level <- factor(df$traffic_level,
-#       levels = c("low", "medium", "high"),
-#       ordered = TRUE
-#     )
-#     add_log("Normalized traffic_level categories")
-#   }
-
-#   if ("vehicle_type" %in% names(df)) {
-#     df$vehicle_type <- as.character(df$vehicle_type)
-#     df$vehicle_type <- str_trim(tolower(df$vehicle_type))
-#     df$vehicle_type[df$vehicle_type %in% c("bike", "bicycle", "cycle")] <- "bike"
-#     df$vehicle_type[df$vehicle_type %in% c("motorbike", "motorcycle", "bike_motor")] <- "motorbike"
-#     df$vehicle_type[df$vehicle_type %in% c("car", "car/van", "van")] <- "car"
-#     df$vehicle_type[df$vehicle_type == ""] <- NA
-#     df$vehicle_type <- as.factor(df$vehicle_type)
-#     add_log("Normalized vehicle_type")
-#   }
-
-#   if ("time_of_day" %in% names(df)) { # Moring , Evening , Night , afternoon
-#     df$vehicle_type <- as.character(df$vehicle_type)
-#     df$vehicle_type <- str_trim(tolower(df$vehicle_type))
-#     df$vehicle_type[df$vehicle_type %in% ""] <- NA
-#     df$vehicle_type <- as.factor(df$vehicle_type)
-#   }
-
-#   if ("distance_km" %in% names(df)) {
-#     bad_dist <- which(!is.na(df$distance_km) & (df$distance_km < 0 | df$distance_km > max_distance_km))
-#     if (length(bad_dist) > 0) {
-#       add_log(paste("Found", length(bad_dist), "distance_km values outside [0,", max_distance_km, "] - set to NA"))
-#       df$distance_km[bad_dist] <- NA
-#     }
-#   }
-
-# }
-
-options(max.print = 1e6)
-df<-read.csv("data/Food_Delivery_Times.csv")
-df
-#The frist step is identifying the duplicates rows
-duplicated(df)
-
-#Their number
-sum(duplicated(df))
-
-#The second step is Data structure
-str(df)
-summary(df)
-#The third step is finding missing values(NA)
-is.na(df) 
-
-#Their number
-sum(is.na(df))
-
-#Delet rows with missing values
-df=na.omit(df)
-df
-
-#Delet empty boxes
-df[df== ""]<-NA
-df
-colSums(is.na(df))
-df=na.omit(df)
-
-#Data type inspection and correction
-
-is.integer(df$Order_ID)
-df$Order_ID=as.integer(df$Order_ID)
-is.integer(df$Order_ID)
-
-is.character(df$Weather)
-df$Weather=as.character(df$Weather)
-is.character(df$Weather)
-
-is.character(df$Traffic_Level)
-df$Traffic_Level=as.character(df$Traffic_Level)
-is.character(df$Traffic_Level)
-
-is.character(df$Time_of_Day)
-df$Time_of_Day=as.character(df$Time_of_Day)
-is.character(df$Time_of_Day)
-
-is.character(df$Vehicle_Type)
-df$Vehicle_Type=as.character(df$Vehicle_Type)
-is.character(df$Vehicle_Type)
-
-is.numeric(df$Distance_km)
-df$Distance_km=as.numeric(df$Distance_km)
-is.numeric(df$Distance_km)
-
-is.integer(df$Preparation_Time_min)
-df$Order_ID=as.integer(df$Preparation_Time_min)
-is.integer(df$Preparation_Time_min)
-
-is.numeric(df$Courier_Experience_yrs)
-df$Courier_Experience_yrs=as.numeric(df$Courier_Experience_yrs)
-is.numeric(df$Courier_Experience_yrs) 
-
-is.integer(df$Delivery_Time_min)
-df$Order_ID=as.integer(df$Delivery_Time_min)
-is.integer(df$Delivery_Time_min)
+  df$Order_ID <- as.integer(df$Order_ID)
+  df$Weather <- as.character(df$Weather)
+  df$Traffic_Level <- as.character(df$Traffic_Level)
+  df$Time_of_Day <- as.character(df$Time_of_Day)
+  df$Vehicle_Type <- as.character(df$Vehicle_Type)
+  df$Distance_km <- as.numeric(df$Distance_km)
+  df$Preparation_Time_min <- as.integer(df$Preparation_Time_min)
+  df$Courier_Experience_yrs <- as.numeric(df$Courier_Experience_yrs)
+  df$Delivery_Time_min <- as.integer(df$Delivery_Time_min)
 
 
-#The fourth step is Handling outliers
-outlier1=boxplot(df$Distance_km)
-outlier1
-outlier2=boxplot(df$Delivery_Time_min)
-outlier2
-outlier3=boxplot(df$Preparation_Time_min)
-outlier3
-outlier4=boxplot(df$Courier_Experience_yrs)
-outlier4
+  out_dist <- boxplot(df$Distance_km, plot = FALSE)$out
+  out_prep <- boxplot(df$Preparation_Time_min, plot = FALSE)$out
+  out_cour <- boxplot(df$Courier_Experience_yrs, plot = FALSE)$out
+  out_del <- boxplot(df$Delivery_Time_min, plot = FALSE)$out
 
-#display outliers records
-df[which(df$Order_ID%in%outlier1),]
-df[which(df$Distance_km%in%outlier2),]
-df[which(df$Courier_Experience_yrs%in%outlier3),]
+  df <- df %>% filter(
+    !(Distance_km %in% out_dist),
+    !(Preparation_Time_min %in% out_prep),
+    !(Courier_Experience_yrs %in% out_cour),
+    !(Delivery_Time_min %in% out_del)
+  )
 
-#Remove outliers
-dd=df[-which(df$Order_ID%in% outlier1),]
-print(outlier1)
-dd=df[-which(df$Distance_km%in% outlier2),]
-print(outlier2)
-dd=df[-which(df$Courier_Experience_yrs%in% outlier3),]
-print(outlier3)
-
-#The%in% operatorin R
-A<-boxplot(df$Order_ID)
-print(A)
-B<-boxplot(df$Distance_km)
-print(B)
-C<-boxplot(df$Preparation_Time_min)
-print(c)
-D<-boxplot(df$Courier_Experience_yrs)
-print(D)
-E<-boxplot(df$Delivery_Time_min)
-print(E)
-#Finish the Data cleaning
-str(dd)
-summary(dd)
-#Delet empty boxes
-#df[df== ""]<-NA
-#df
-#colSums(is.na(df))
-#df=na.omit(df)
-#outlier
-#summary(df$Delivery_Time_min)
-#length(outlier)
-#length(df$Delivery_Time_min)
-#print(outlier)
+  return(df)
+}
