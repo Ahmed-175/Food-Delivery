@@ -1,72 +1,72 @@
 library(shiny)
-library(bslib)
 library(dplyr)
 library(factoextra)
 
-# Load external functions
 source("R/cleaning.R")
 source("R/kmeans.R")
 
-ui <- page_sidebar(
-  title = "dotR Delivery Analysis",
-  sidebar = sidebar(
-    width = 300,
-    open = "always",
-    h3("⚙️ Controls"),
-    tags$hr(),
-    fileInput("file", "Upload CSV", accept = ".csv"),
-    selectInput("col", "Choose Column for Histogram", choices = NULL),
-    numericInput("bins", "Number of Bins", value = 15, min = 5, max = 50),
-    numericInput("k", "Number of Clusters", value = 3, min = 2, max = 10),
-    actionButton("run", "Generate", class = "btn-primary btn-lg")
-  ),
-  theme = bs_theme(
-    version = 5,
-    bootswatch = "flatly",
-    base_font = font_google("Inter"),
-    heading_font = font_google("Poppins")
-  ),
-  layout_column_wrap(
-    width = 1 / 2,
-    card(
-      full_screen = TRUE,
-      card_header("📄 Uploaded Data"),
-      tableOutput("data")
+ui <- fluidPage(
+  titlePanel("dotR Delivery Analysis"),
+  fluidRow(
+    # Sidebar fixed on left
+    column(
+      width = 3,
+      wellPanel(
+        h3("⚙️ Controls"),
+        fileInput("file", "Upload CSV", accept = ".csv"),
+        selectInput("col", "Choose Column for Histogram", choices = NULL),
+        numericInput("bins", "Number of Bins", value = 15, min = 5, max = 50),
+        numericInput("k", "Number of Clusters", value = 3, min = 2, max = 10),
+        actionButton("run", "Generate")
+      )
     ),
-    card(
-      full_screen = TRUE,
-      card_header("📊 Histogram"),
-      plotOutput("graph", height = "400px")
-    ),
-    card(
-      full_screen = TRUE,
-      card_header("🧩 Clusters"),
-      tableOutput("cluster_table"),
-      plotOutput("cluster_plot", height = "400px")
+    # Main panel with Tabs
+    column(
+      width = 9,
+      tabsetPanel(
+        tabPanel(
+          "Data",
+          h3("Uploaded Data"),
+          tableOutput("data")
+        ),
+        tabPanel(
+          "Histogram",
+          h3("Histogram"),
+          plotOutput("graph", height = "400px")
+        ),
+        tabPanel(
+          "K-Means Clustering",
+          h3("Cluster Table"),
+          tableOutput("cluster_table"),
+          h3("Cluster Plot"),
+          plotOutput("cluster_plot", height = "400px")
+        ),
+        tabPanel(
+          "Cluster Summary",
+          h3("Cluster Summary"),
+          uiOutput("cluster_summary_ui")
+        )
+      )
     )
   )
 )
 
 server <- function(input, output, session) {
-  # Reactive: read and clean data
   data <- reactive({
     req(input$file)
     df <- read.csv(input$file$datapath)
     clean_data(df)
   })
 
-  # Update selectInput with column names
   observe({
     req(data())
     updateSelectInput(session, "col", choices = names(data()))
   })
 
-
-  # Render data table
   output$data <- renderTable({
     data()
   })
-  # Render histogram
+
   output$graph <- renderPlot({
     req(input$col)
     req(input$run)
@@ -74,25 +74,70 @@ server <- function(input, output, session) {
       hist(
         data()[[input$col]],
         breaks = input$bins,
-        col = "#4C9ED9",
+        col = "lightblue",
         border = "white",
         main = paste("Distribution of", input$col),
         xlab = input$col
       )
     })
   })
+
   clusters <- reactive({
     req(data())
     perform_kmeans(data(), k = input$k)
   })
+
   output$cluster_table <- renderTable({
     req(clusters())
-    head(clusters()$data[, c("Order_ID", "cluster", "Distance_km", "Delivery_Time_min", "Speed_kmph")], 20)
+    head(
+      clusters()$data[
+        ,
+        c("Order_ID", "cluster", "Distance_km", "Delivery_Time_min", "Speed_kmph")
+      ],
+      20
+    )
   })
 
   output$cluster_plot <- renderPlot({
     req(clusters())
-    fviz_cluster(clusters()$km, data = clusters()$scaled, geom = "point", stand = FALSE)
+    fviz_cluster(
+      clusters()$km,
+      data = clusters()$scaled,
+      geom = "point",
+      stand = FALSE
+    )
+  })
+
+  output$cluster_summary_ui <- renderUI({
+    req(clusters())
+
+    summary_df <- clusters()$data %>%
+      group_by(cluster) %>%
+      summarise(
+        avg_distance = round(mean(Distance_km), 2),
+        avg_prep_time = round(mean(Preparation_Time_min), 2),
+        avg_experience = round(mean(Courier_Experience_yrs), 2),
+        avg_speed = round(mean(Speed_kmph), 2),
+        avg_delivery = round(mean(Delivery_Time_min), 2),
+        n_orders = n(),
+        .groups = "drop"
+      )
+
+    tags$div(
+      style = "display: flex; flex-wrap: wrap; gap: 15px;",
+      lapply(1:nrow(summary_df), function(i) {
+        tags$div(
+          style = "flex: 1 1 200px; border: 1px solid #ccc; padding: 10px;",
+          tags$h4(paste("Cluster", summary_df$cluster[i])),
+          tags$p(paste("Avg Distance:", summary_df$avg_distance[i], "km")),
+          tags$p(paste("Avg Prep Time:", summary_df$avg_prep_time[i], "min")),
+          tags$p(paste("Avg Experience:", summary_df$avg_experience[i], "yrs")),
+          tags$p(paste("Avg Speed:", summary_df$avg_speed[i], "km/min")),
+          tags$p(paste("Avg Delivery:", summary_df$avg_delivery[i], "min")),
+          tags$p(paste("Number of Orders:", summary_df$n_orders[i]))
+        )
+      })
+    )
   })
 }
 
