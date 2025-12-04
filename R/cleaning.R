@@ -15,6 +15,11 @@ clean_data <- function(df) {
   df$Courier_Experience_yrs <- as.numeric(df$Courier_Experience_yrs)
   df$Delivery_Time_min <- as.numeric(df$Delivery_Time_min)
 
+  df$Traffic_Level <- as.factor(df$Traffic_Level)
+  df$Weather <- as.factor(df$Weather)
+  df$Time_of_Day <- as.factor(df$Time_of_Day)
+  df$Vehicle_Type <- as.factor(df$Vehicle_Type)
+
   df <- na.omit(df)
 
   out_dist <- boxplot(df$Distance_km)$out
@@ -32,7 +37,7 @@ clean_data <- function(df) {
   df <- df[-remove_rows, ]
 
   df$Speed_kmph <- round((df$Distance_km / df$Delivery_Time_min) * 60, 2)
-  df$Late_Delivery <- ifelse(df$Delivery_Time_min > 30, "Yes", "No")
+  df$Late_Delivery <- ifelse(df$Delivery_Time_min > 40, "Yes", "No")
 
   print(paste("Rows after cleaning:", nrow(df)))
 
