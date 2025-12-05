@@ -16,6 +16,9 @@ ui <- fluidPage(
       width = 9,
       tabsetPanel(
         data_ui,
+        tabPanel("Central Tendency", plotOutput("tend_plot")),
+        tabPanel("Categorical Data", uiOutput("cat_plots")),
+        tabPanel("Relation Plots", uiOutput("relation_plots")),
         outliers_ui,
         kmeans_ui,
         cluster_summary_ui,

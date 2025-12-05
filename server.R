@@ -8,64 +8,28 @@ library(dplyr)
 source("R/cleaning.R")
 source("R/kmeans.R")
 source("R/tree.R")
+source("R/visualize_functions.R")
 
-server <- function(input, output, session) {
+server <- function(input, output) {
   # Keep raw_df for "before cleaning" plots and for debugging
   raw_df <- reactive({
     req(input$file)
     read.csv(input$file$datapath, stringsAsFactors = FALSE)
   })
 
-  # data() now returns the LIST produced by clean_data()
   data <- reactive({
     req(raw_df())
     clean_data(raw_df())
   })
 
-  # Update select input choices to numeric columns available after cleaning
-  observe({
-    req(data())
-    cols <- names(data()$outliers_ui)
-    # If there are no numeric columns, provide a safe default
-    if (length(cols) == 0) cols <- character(0)
-    updateSelectInput(session, "col", choices = cols, selected = if (length(cols) > 0) cols[1] else NULL)
-  })
-
-  # Render cleaned data table (show cleaned_df)
   output$data <- renderTable(
     {
       req(data())
-      head(data()$cleaned_df, 50) # show first 50 rows to avoid huge table
+      head(data()$cleaned_df, 50)
     },
     striped = TRUE,
     hover = TRUE
   )
-
-  # Histogram for selected numeric column (from cleaned_df)
-  output$graph <- renderPlot({
-    req(input$col)
-    req(input$run)
-    req(data())
-    isolate({
-      vec <- data()$cleaned_df[[input$col]]
-      # ensure it's numeric
-      if (!is.numeric(vec)) {
-        plot.new()
-        title(main = paste("Column", input$col, "is not numeric"))
-        return(NULL)
-      }
-      hist(
-        vec,
-        breaks = ifelse(is.null(input$bins), 10, input$bins),
-        col = "lightblue",
-        border = "white",
-        main = paste("Distribution of", input$col),
-        xlab = input$col
-      )
-    })
-  })
-
-  # K-means clusters (pass cleaned_df to perform_kmeans)
   clusters <- reactive({
     req(data())
     perform_kmeans(data()$cleaned_df, k = input$k)
@@ -76,7 +40,7 @@ server <- function(input, output, session) {
       req(clusters())
       head(
         clusters()$data[, c("Order_ID", "cluster", "Distance_km", "Delivery_Time_min", "Speed_kmph")],
-        20
+        10
       )
     },
     striped = TRUE
@@ -123,7 +87,6 @@ server <- function(input, output, session) {
     )
   })
 
-  # Classification tree (use cleaned_df)
   reactive_tree <- reactive({
     req(data())
     dt(data()$cleaned_df)
@@ -165,9 +128,50 @@ server <- function(input, output, session) {
     req(raw_df())
     par(mfrow = c(2, 2))
     raw <- raw_df()
-    if ("Distance_km" %in% names(raw)) boxplot(as.numeric(raw$Distance_km), main = "Distance_km")
-    if ("Preparation_Time_min" %in% names(raw)) boxplot(as.numeric(raw$Preparation_Time_min), main = "Prep Time")
-    if ("Courier_Experience_yrs" %in% names(raw)) boxplot(as.numeric(raw$Courier_Experience_yrs), main = "Experience")
-    if ("Delivery_Time_min" %in% names(raw)) boxplot(as.numeric(raw$Delivery_Time_min), main = "Delivery Time")
+    boxplot(as.numeric(raw$Distance_km), main = "Distance_km")
+    boxplot(as.numeric(raw$Preparation_Time_min), main = "Prep Time")
+    boxplot(as.numeric(raw$Courier_Experience_yrs), main = "Experience")
+    boxplot(as.numeric(raw$Delivery_Time_min), main = "Delivery Time")
+  })
+
+  
+  # ======================= Data Visualization =================
+  output$tend_plot <- renderPlot({
+    req(data()$cleaned_df)
+    numeric_cols <- names(data()$cleaned_df)[sapply(data()$cleaned_df, is.numeric)]
+    par(mfrow = c(length(numeric_cols), 3), mar = c(3, 3, 3, 1)) # 3 plots per column
+    for (col in numeric_cols) {
+      visualize_data_tend(data()$cleaned_df[[col]])
+    }
+  })
+
+  output$cat_plots <- renderUI({
+    req(data()$cleaned_df)
+    cat_cols <- names(data()$cleaned_df)[sapply(data()$cleaned_df, function(x) is.character(x) || is.factor(x))]
+    plot_output_list <- lapply(cat_cols, function(col) {
+      plotname <- paste0("plot_", col)
+      output[[plotname]] <- renderPlot({
+        visualize_data_table(data()$cleaned_df[[col]])
+      })
+      plotOutput(plotname)
+    })
+    do.call(tagList, plot_output_list)
+  })
+
+  output$relation_plots <- renderUI({
+    req(data()$cleaned_df)
+    numeric_cols <- names(data()$cleaned_df)[sapply(data()$cleaned_df, is.numeric)]
+    pairs <- combn(numeric_cols, 2, simplify = FALSE)
+    plot_output_list <- lapply(pairs, function(pair) {
+      plotname <- paste0("plot_rel_", pair[1], "_", pair[2])
+      output[[plotname]] <- renderPlot({
+        visualize_data_relation(data()$cleaned_df[[pair[1]]], data()$cleaned_df[[pair[2]]],
+          main = paste(pair[1], "vs", pair[2]),
+          xlab = pair[1], ylab = pair[2]
+        )
+      })
+      plotOutput(plotname)
+    })
+    do.call(tagList, plot_output_list)
   })
 }
