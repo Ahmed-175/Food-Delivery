@@ -22,10 +22,17 @@ clean_data <- function(df) {
 
   df <- na.omit(df)
 
-  out_dist <- boxplot(df$Distance_km)$out
-  out_prep <- boxplot(df$Preparation_Time_min)$out
-  out_cour <- boxplot(df$Courier_Experience_yrs)$out
-  out_del <- boxplot(df$Delivery_Time_min)$out
+  out_dist <- boxplot(df$Distance_km, plot = FALSE)$out
+  out_prep <- boxplot(df$Preparation_Time_min, plot = FALSE)$out
+  out_cour <- boxplot(df$Courier_Experience_yrs, plot = FALSE)$out
+  out_del  <- boxplot(df$Delivery_Time_min, plot = FALSE)$out
+
+  outliers <- list(
+    Distance_km = out_dist,
+    Preparation_Time_min = out_prep,
+    Courier_Experience_yrs = out_cour,
+    Delivery_Time_min = out_del
+  )
 
   remove_rows <- unique(c(
     which(df$Distance_km %in% out_dist),
@@ -41,5 +48,8 @@ clean_data <- function(df) {
 
   print(paste("Rows after cleaning:", nrow(df)))
 
-  return(df)
+  return(list(
+    cleaned_df = df,
+    outliers = outliers
+  ))
 }
