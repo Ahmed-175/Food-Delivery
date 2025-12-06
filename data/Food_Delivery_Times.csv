@@ -1,4 +1,3 @@
-Order_ID,Distance_km,Weather,Traffic_Level,Time_of_Day,Vehicle_Type,Preparation_Time_min,Courier_Experience_yrs,Delivery_Time_min
 522,7.93,Windy,Low,Afternoon,Scooter,12,1,43
 738,16.42,Clear,Medium,Evening,Bike,20,2,84
 741,9.52,Foggy,Low,Night,Scooter,28,1,59

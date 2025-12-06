@@ -11,17 +11,19 @@ source("R/tree.R")
 source("R/visualize_functions.R")
 
 server <- function(input, output) {
-  # Keep raw_df for "before cleaning" plots and for debugging
+  # ===== Raw Data =====
   raw_df <- reactive({
     req(input$file)
     read.csv(input$file$datapath, stringsAsFactors = FALSE)
   })
 
+  # ===== Cleaned Data =====
   data <- reactive({
     req(raw_df())
     clean_data(raw_df())
   })
 
+  # ===== Show Data Table =====
   output$data <- renderTable(
     {
       req(data())
@@ -30,6 +32,8 @@ server <- function(input, output) {
     striped = TRUE,
     hover = TRUE
   )
+
+  # ===== K-Means =====
   clusters <- reactive({
     req(data())
     perform_kmeans(data()$cleaned_df, k = input$k)
@@ -38,10 +42,10 @@ server <- function(input, output) {
   output$cluster_table <- renderTable(
     {
       req(clusters())
-      head(
-        clusters()$data[, c("Order_ID", "cluster", "Distance_km", "Delivery_Time_min", "Speed_kmph")],
-        10
-      )
+      head(clusters()$data[, c(
+        "Order_ID", "cluster", "Distance_km",
+        "Delivery_Time_min", "Speed_kmph"
+      )], 10)
     },
     striped = TRUE
   )
@@ -56,6 +60,7 @@ server <- function(input, output) {
     )
   })
 
+  # ===== Cluster Summaries =====
   output$cluster_summary_ui <- renderUI({
     req(clusters())
     summary_df <- clusters()$data %>%
@@ -81,12 +86,13 @@ server <- function(input, output) {
           tags$p(paste("Avg Experience:", summary_df$avg_experience[i], "yrs")),
           tags$p(paste("Avg Speed:", summary_df$avg_speed[i], "km/h")),
           tags$p(paste("Avg Delivery:", summary_df$avg_delivery[i], "min")),
-          tags$p(paste("Number of Orders:", summary_df$n_orders[i]))
+          tags$p(paste("Orders:", summary_df$n_orders[i]))
         )
       })
     )
   })
 
+  # ===== Classification Tree =====
   reactive_tree <- reactive({
     req(data())
     dt(data()$cleaned_df)
@@ -103,6 +109,7 @@ server <- function(input, output) {
     )
   })
 
+  # ===== Regression Tree =====
   reactive_reg_tree <- reactive({
     req(data())
     rpart(
@@ -124,6 +131,7 @@ server <- function(input, output) {
     )
   })
 
+  # ===== Boxplots Before Cleaning =====
   output$box_before <- renderPlot({
     req(raw_df())
     par(mfrow = c(2, 2))
@@ -134,17 +142,14 @@ server <- function(input, output) {
     boxplot(as.numeric(raw$Delivery_Time_min), main = "Delivery Time")
   })
 
-  
-  # ======================= Data Visualization =================
+  # ===== Numeric Tendencies =====
   output$tend_plot <- renderPlot({
     req(data()$cleaned_df)
-    numeric_cols <- names(data()$cleaned_df)[sapply(data()$cleaned_df, is.numeric)]
-    par(mfrow = c(length(numeric_cols), 3), mar = c(3, 3, 3, 1)) # 3 plots per column
-    for (col in numeric_cols) {
-      visualize_data_tend(data()$cleaned_df[[col]])
-    }
+    par(mfrow = c(length(numeric_cols), 1), mar = c(1, 1, 1, 20))
+    visualize_data_tend(data()$cleaned_df[["Delivery_Time_min"]], "Delivery_Time_min")
   })
 
+  # ===== Categorical Plots =====
   output$cat_plots <- renderUI({
     req(data()$cleaned_df)
     cat_cols <- names(data()$cleaned_df)[sapply(data()$cleaned_df, function(x) is.character(x) || is.factor(x))]
@@ -158,6 +163,7 @@ server <- function(input, output) {
     do.call(tagList, plot_output_list)
   })
 
+  # ===== Relations Plots =====
   output$relation_plots <- renderUI({
     req(data()$cleaned_df)
     numeric_cols <- names(data()$cleaned_df)[sapply(data()$cleaned_df, is.numeric)]
@@ -165,7 +171,9 @@ server <- function(input, output) {
     plot_output_list <- lapply(pairs, function(pair) {
       plotname <- paste0("plot_rel_", pair[1], "_", pair[2])
       output[[plotname]] <- renderPlot({
-        visualize_data_relation(data()$cleaned_df[[pair[1]]], data()$cleaned_df[[pair[2]]],
+        visualize_data_relation(
+          data()$cleaned_df[[pair[1]]],
+          data()$cleaned_df[[pair[2]]],
           main = paste(pair[1], "vs", pair[2]),
           xlab = pair[1], ylab = pair[2]
         )
