@@ -44,10 +44,7 @@ clean_data <- function(df) {
   df <- df[-remove_rows, ]
 
   df$Speed_kmph <- round((df$Distance_km / df$Delivery_Time_min) * 60, 2)
-  df$Late_Delivery <- ifelse(df$Delivery_Time_min > 40, "Yes", "No")
-
   print(paste("Rows after cleaning:", nrow(df)))
-
   return(list(
     cleaned_df = df,
     outliers = outliers

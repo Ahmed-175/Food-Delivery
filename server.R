@@ -21,6 +21,10 @@ server <- function(input, output) {
     req(raw_df())
     clean_data(raw_df())
   })
+  clusters <- reactive({
+    req(data())
+    perform_kmeans(data()$cleaned_df, k = input$k)
+  })
 
   output$data <- renderTable(
     {
@@ -30,11 +34,7 @@ server <- function(input, output) {
     striped = TRUE,
     hover = TRUE
   )
-  clusters <- reactive({
-    req(data())
-    perform_kmeans(data()$cleaned_df, k = input$k)
-  })
-
+  
   output$cluster_table <- renderTable(
     {
       req(clusters())
@@ -175,3 +175,5 @@ server <- function(input, output) {
     do.call(tagList, plot_output_list)
   })
 }
+
+
