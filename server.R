@@ -83,8 +83,9 @@ server <- function(input, output) {
           tags$p(paste("Avg Delivery:", summary_df$avg_delivery[i], "min")),
           tags$p(paste("Number of Orders:", summary_df$n_orders[i])),
           tags$p(paste(
-            description_fun_distance(summary_df$avg_distance[i]), ",",
-            description_fun_delivery_time(summary_df$avg_delivery[i]), ",", description_fun_experience(summary_df$avg_experience[i])
+            description_fun_distance(summary_df$avg_distance[i], as.numeric(mean(data()$cleaned_df$Distance_km))), ",",
+            description_fun_delivery_time(summary_df$avg_delivery[i], as.numeric(mean(data()$cleaned_df$Delivery_Time_min))), ",", 
+            description_fun_experience(summary_df$avg_experience[i], as.numeric(mean(data()$cleaned_df$Courier_Experience_yrs)))
           ))
         )
       })
