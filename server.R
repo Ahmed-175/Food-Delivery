@@ -185,21 +185,28 @@ server <- function(input, output) {
 
   result <- reactive({
     req(data())
-
     df <- data()$cleaned_df %>%
       mutate(late_rate = ifelse(Late_Delivery == "Yes", 1, 0))
+
+    weather_scores <- df %>%
+      group_by(Weather) %>%
+      summarise(avg_point_speed = (1 / mean(Speed_kmph)) * 10)
+
+    df <- df %>%
+      left_join(weather_scores, by = "Weather")
 
     df %>%
       group_by(Vehicle_Type) %>%
       summarise(
-        avg_speed = mean(Speed_kmph, na.rm = TRUE),
-        late_delivery_rate = mean(late_rate, na.rm = TRUE) * 100,
-        avg_traffic_score = mean(traffic_score, na.rm = TRUE),
-        orders = n()
+        avg_speed = mean(Speed_kmph),
+        late_delivery_rate = mean(late_rate) * 100,
+        avg_traffic_score = mean(traffic_score),
+        avg_weather_score = mean(avg_point_speed),
+        orders = n(),
+        performance = mean(Speed_kmph) * mean(late_rate) * mean(traffic_score) * mean(avg_point_speed)
       ) %>%
       arrange(avg_speed)
   })
-
   output$vehicle_table <- renderTable({
     req(result())
     result()
