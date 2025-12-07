@@ -34,7 +34,7 @@ server <- function(input, output) {
     striped = TRUE,
     hover = TRUE
   )
-  
+
   output$cluster_table <- renderTable(
     {
       req(clusters())
@@ -134,7 +134,7 @@ server <- function(input, output) {
     boxplot(as.numeric(raw$Delivery_Time_min), main = "Delivery Time")
   })
 
-  
+
   # ======================= Data Visualization =================
   output$tend_plot <- renderPlot({
     req(data()$cleaned_df)
@@ -175,5 +175,3 @@ server <- function(input, output) {
     do.call(tagList, plot_output_list)
   })
 }
-
-

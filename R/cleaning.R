@@ -4,28 +4,24 @@ clean_data <- function(df) {
   df <- df[!duplicated(df), ]
   df[df == ""] <- NA
 
-  df$Order_ID <- as.integer(df$Order_ID)
-  df$Weather <- as.character(df$Weather)
-  df$Traffic_Level <- as.character(df$Traffic_Level)
-  df$Time_of_Day <- as.character(df$Time_of_Day)
-  df$Vehicle_Type <- as.character(df$Vehicle_Type)
-
-  df$Distance_km <- as.numeric(df$Distance_km)
-  df$Preparation_Time_min <- as.numeric(df$Preparation_Time_min)
-  df$Courier_Experience_yrs <- as.numeric(df$Courier_Experience_yrs)
-  df$Delivery_Time_min <- as.numeric(df$Delivery_Time_min)
-
-  df$Traffic_Level <- as.factor(df$Traffic_Level)
-  df$Weather <- as.factor(df$Weather)
-  df$Time_of_Day <- as.factor(df$Time_of_Day)
-  df$Vehicle_Type <- as.factor(df$Vehicle_Type)
-
-  df <- na.omit(df)
+  df <- df %>%
+    mutate(
+      Order_ID = as.integer(Order_ID),
+      Weather = as.factor(Weather),
+      Traffic_Level = as.factor(Traffic_Level),
+      Time_of_Day = as.factor(Time_of_Day),
+      Vehicle_Type = as.factor(Vehicle_Type),
+      Distance_km = as.numeric(Distance_km),
+      Preparation_Time_min = as.numeric(Preparation_Time_min),
+      Courier_Experience_yrs = as.numeric(Courier_Experience_yrs),
+      Delivery_Time_min = as.numeric(Delivery_Time_min)
+    ) %>%
+    na.omit()
 
   out_dist <- boxplot(df$Distance_km, plot = FALSE)$out
   out_prep <- boxplot(df$Preparation_Time_min, plot = FALSE)$out
   out_cour <- boxplot(df$Courier_Experience_yrs, plot = FALSE)$out
-  out_del  <- boxplot(df$Delivery_Time_min, plot = FALSE)$out
+  out_del <- boxplot(df$Delivery_Time_min, plot = FALSE)$out
 
   outliers <- list(
     Distance_km = out_dist,
@@ -43,8 +39,27 @@ clean_data <- function(df) {
 
   df <- df[-remove_rows, ]
 
-  df$Speed_kmph <- round((df$Distance_km / df$Delivery_Time_min) * 60, 2)
+  df <- df %>%
+    mutate(
+      Speed_kmph = round((Distance_km / Delivery_Time_min) * 60, 2),
+      total_time = Delivery_Time_min + Preparation_Time_min
+    )
+
+  t_min <- min(df$total_time)
+  t_max <- max(df$total_time)
+  m <- mean(df$total_time)
+
+  df <- df %>%
+    mutate(
+      Customer_Rating = case_when(
+        total_time <= m ~ round(2.5 + (5 - 2.5) * (m - total_time) / (m - t_min), 1),
+        total_time > m ~ round(2.5 - (2.5 - 1) * (total_time - m) / (t_max - m), 1)
+      ),
+      Customer_Rating = pmin(pmax(Customer_Rating, 1), 5)
+    )
+
   print(paste("Rows after cleaning:", nrow(df)))
+
   return(list(
     cleaned_df = df,
     outliers = outliers
