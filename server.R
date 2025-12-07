@@ -84,7 +84,7 @@ server <- function(input, output) {
           tags$p(paste("Number of Orders:", summary_df$n_orders[i])),
           tags$p(paste(
             description_fun_distance(summary_df$avg_distance[i], as.numeric(mean(data()$cleaned_df$Distance_km))), ",",
-            description_fun_delivery_time(summary_df$avg_delivery[i], as.numeric(mean(data()$cleaned_df$Delivery_Time_min))), ",", 
+            description_fun_delivery_time(summary_df$avg_delivery[i], as.numeric(mean(data()$cleaned_df$Delivery_Time_min))), ",",
             description_fun_experience(summary_df$avg_experience[i], as.numeric(mean(data()$cleaned_df$Courier_Experience_yrs)))
           ))
         )
@@ -178,5 +178,30 @@ server <- function(input, output) {
       plotOutput(plotname)
     })
     do.call(tagList, plot_output_list)
+  })
+
+
+  # ================== just test from Ahmed Farag =====================
+
+  result <- reactive({
+    req(data())
+
+    df <- data()$cleaned_df %>%
+      mutate(late_rate = ifelse(Late_Delivery == "Yes", 1, 0))
+
+    df %>%
+      group_by(Vehicle_Type) %>%
+      summarise(
+        avg_speed = mean(Speed_kmph, na.rm = TRUE),
+        late_delivery_rate = mean(late_rate, na.rm = TRUE) * 100,
+        avg_traffic_score = mean(traffic_score, na.rm = TRUE),
+        orders = n()
+      ) %>%
+      arrange(avg_speed)
+  })
+
+  output$vehicle_table <- renderTable({
+    req(result())
+    result()
   })
 }

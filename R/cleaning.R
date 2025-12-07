@@ -57,8 +57,12 @@ clean_data <- function(df) {
       ),
       Customer_Rating = pmin(pmax(Customer_Rating, 1), 5)
     )
-
   print(paste("Rows after cleaning:", nrow(df)))
+
+  df$Late_Delivery <- ifelse(df$Delivery_Time_min >= 40, "Yes", "No")
+  df$traffic_score <- ifelse(df$Traffic_Level == "High", 1,
+    ifelse(df$Traffic_Level == "Medium", 0.5, 0)
+  )
 
   return(list(
     cleaned_df = df,
