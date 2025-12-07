@@ -19,10 +19,12 @@ perform_kmeans <- function(df, k = 3) {
   df <- df %>%
     left_join(cluster_summary %>% select(cluster, flag), by = "cluster")
 
+  performance = mean(df$Speed_kmph) * 0.5 + (1 - mean(df$late_rate)) * 0.3 + mean(df$traffic_score) * 0.2
 
   return(list(
     data = df,
     km = km,
-    scaled = cluster_scaled
+    scaled = cluster_scaled,
+    performance = performance
   ))
 }

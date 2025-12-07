@@ -188,27 +188,52 @@ server <- function(input, output) {
     df <- data()$cleaned_df %>%
       mutate(late_rate = ifelse(Late_Delivery == "Yes", 1, 0))
 
-    weather_scores <- df %>%
-      group_by(Weather) %>%
-      summarise(avg_point_speed = (1 / mean(Speed_kmph)) * 10)
-
-    df <- df %>%
-      left_join(weather_scores, by = "Weather")
-
-    df %>%
+    # Calculate performance metrics by vehicle type
+    result_df <- df %>%
       group_by(Vehicle_Type) %>%
       summarise(
-        avg_speed = mean(Speed_kmph),
-        late_delivery_rate = mean(late_rate) * 100,
-        avg_traffic_score = mean(traffic_score),
-        avg_weather_score = mean(avg_point_speed),
         orders = n(),
-        performance = mean(Speed_kmph) * mean(late_rate) * mean(traffic_score) * mean(avg_point_speed)
+        avg_delivery_time = mean(Delivery_Time_min, na.rm = TRUE),
+        median_delivery_time = median(Delivery_Time_min, na.rm = TRUE),
+        delivery_time_sd = sd(Delivery_Time_min, na.rm = TRUE),
+        avg_speed = mean(Speed_kmph, na.rm = TRUE),
+        late_delivery_rate = mean(late_rate) * 100,
+        on_time_rate = (1 - mean(late_rate)) * 100,
+        avg_distance = mean(Distance_km, na.rm = TRUE),
+        .groups = 'drop'
       ) %>%
-      arrange(avg_speed)
+      mutate(
+        # Speed score (normalized 0-1, higher is better)
+        speed_score = avg_speed / max(avg_speed),
+        
+        # Reliability score (lower delivery time = better)
+        reliability_score = 1 - (median_delivery_time / max(median_delivery_time)),
+        
+        # Consistency score (lower variance = better)
+        consistency_score = 1 - (delivery_time_sd / max(delivery_time_sd, na.rm = TRUE)),
+        
+        # On-time score (higher on-time rate = better)
+        on_time_score = on_time_rate / 100,
+        
+        # Composite performance score
+        performance_score = (speed_score * 0.25 + 
+                            reliability_score * 0.35 + 
+                            consistency_score * 0.2 + 
+                            on_time_score * 0.2) * 100
+      ) %>%
+      arrange(desc(performance_score)) %>%
+      select(Vehicle_Type, orders, avg_delivery_time, median_delivery_time, 
+             on_time_rate, avg_speed, performance_score)
   })
+
   output$vehicle_table <- renderTable({
     req(result())
-    result()
+    result() %>%
+      mutate(
+        performance_score = round(performance_score, 2),
+        on_time_rate = round(on_time_rate, 2),
+        avg_speed = round(avg_speed, 2),
+        avg_delivery_time = round(avg_delivery_time, 2)
+      )
   })
 }
