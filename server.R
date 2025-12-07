@@ -9,6 +9,7 @@ source("R/cleaning.R")
 source("R/kmeans.R")
 source("R/tree.R")
 source("R/visualize_functions.R")
+source("R/description_fun.R")
 
 server <- function(input, output) {
   # Keep raw_df for "before cleaning" plots and for debugging
@@ -69,7 +70,6 @@ server <- function(input, output) {
         n_orders = n(),
         .groups = "drop"
       )
-
     tags$div(
       style = "display: flex; flex-wrap: wrap; gap: 15px;",
       lapply(1:nrow(summary_df), function(i) {
@@ -81,7 +81,11 @@ server <- function(input, output) {
           tags$p(paste("Avg Experience:", summary_df$avg_experience[i], "yrs")),
           tags$p(paste("Avg Speed:", summary_df$avg_speed[i], "km/h")),
           tags$p(paste("Avg Delivery:", summary_df$avg_delivery[i], "min")),
-          tags$p(paste("Number of Orders:", summary_df$n_orders[i]))
+          tags$p(paste("Number of Orders:", summary_df$n_orders[i])),
+          tags$p(paste(
+            description_fun_distance(summary_df$avg_distance[i]), ",",
+            description_fun_delivery_time(summary_df$avg_delivery[i]), ",", description_fun_experience(summary_df$avg_experience[i])
+          ))
         )
       })
     )
