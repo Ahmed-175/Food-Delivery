@@ -50,15 +50,34 @@ visualize_data_relation <- function(data1, data2, main="", xlab="", ylab="") {
        col="black", pch=19)
 }
 # box plot for unusual numeric data (5)
-visualize_data_unusual <- function (data){outlier=boxplot(data)
-outlier
+visualize_data_unusual <- function (data){outlier=boxplot(data, main = "Box Plot - Outlier Detection", 
+                     ylab = "Value", col = "lightblue")
+  
+  # Print outlier values
+  if (length(outlier$out) > 0) {
+    cat("Outliers detected:", outlier$out, "\n")
+  } else {
+    cat("No outliers detected\n")
+  }
+  
+  return(outlier)
 }
 #table/pie delivery time distribution (8)
 visualize_data_pie <- function(data) {
   counts <- table(data)
-  percentage=paste0(round(100*counts/sum(counts)),"%")
-  pie(counts, labels = percentage, main = "deleviry time distribution",
-      col=c("pink","lightblue","red","black"))
-  legend("bottomright", legend = c("Afternoon", "Evening" , "Morning" , "Night"),
-         fill = c("pink", "lightblue","red","black"))
+  percentage <- paste0(round(100 * counts / sum(counts)), "%")
+  
+  # Define colors and labels based on data
+  colors <- c("pink", "lightblue", "red", "black")
+  labels_legend <- c("Afternoon", "Evening", "Morning", "Night")
+  
+  # Use only the colors/labels that match the data
+  n_categories <- length(counts)
+  colors_used <- colors[1:n_categories]
+  labels_used <- labels_legend[1:n_categories]
+  
+  pie(counts, labels = percentage, main = "Delivery Time Distribution",
+      col = colors_used)
+  legend("bottomright", legend = labels_used,
+         fill = colors_used)
 }

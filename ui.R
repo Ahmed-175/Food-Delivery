@@ -19,6 +19,9 @@ ui <- fluidPage(
         tabPanel("Central Tendency", plotOutput("tend_plot")),
         tabPanel("Categorical Data", uiOutput("cat_plots")),
         tabPanel("Relation Plots", uiOutput("relation_plots")),
+        tabPanel("Delivery Distribution", 
+          plotOutput("time_of_day_pie", height = "500px")
+        ),
         tabPanel("Performance of Vehicle", tableOutput("vehicle_table"), tableOutput("TestTableWeather")),
         outliers_ui,
         kmeans_ui,

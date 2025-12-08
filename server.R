@@ -201,6 +201,19 @@ server <- function(input, output) {
     boxplot(as.numeric(raw$Delivery_Time_min), main = "Delivery Time")
   })
 
+output$unusual_data <- renderPlot({
+  req(raw_df())
+  par(mfrow = c(2, 2))
+  raw <- raw_df()
+  visualize_data_unusual(as.numeric(raw$Distance_km))
+  visualize_data_unusual(as.numeric(raw$Preparation_Time_min))
+  visualize_data_unusual(as.numeric(raw$Courier_Experience_yrs))
+  visualize_data_unusual(as.numeric(raw$Delivery_Time_min))
+})
+output$time_of_day_pie <- renderPlot({
+  req(data()$cleaned_df)
+  visualize_data_pie(data()$cleaned_df$Time_of_Day)
+})
 
   # ======================= Data Visualization =================
   output$tend_plot <- renderPlot({
