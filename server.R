@@ -92,13 +92,15 @@ server <- function(input, output) {
     )
   })
   split_data <- reactive({
-      req(data())
-      splitted_data(data()$cleaned_df)
-    })
+    req(data())
+    splitted_data(data()$cleaned_df)
+  })
   reactive_tree <- reactive({
     req(data())
-    dt(split_data()$training_data,
-       split_data()$testing_data)
+    dt(
+      split_data()$training_data,
+      split_data()$testing_data
+    )
   })
 
   output$treePlot <- renderPlot({
@@ -114,19 +116,19 @@ server <- function(input, output) {
   output$tree_predictions <- renderTable({
     req(reactive_tree()$predictions)
     test_data <- split_data()$testing_data
-    
+
     # Calculate accuracy
     predictions <- reactive_tree()$predictions
     actual <- test_data$Late_Delivery
-    
+
     # Confusion matrix
     confusion <- table(Actual = actual, Predicted = predictions)
-    
+
     # Calculate metrics
     accuracy <- sum(diag(confusion)) / sum(confusion) * 100
     precision <- confusion[2, 2] / sum(confusion[, 2]) * 100
     recall <- confusion[2, 2] / sum(confusion[2, ]) * 100
-    
+
     data.frame(
       Metric = c("Accuracy", "Precision", "Recall", "Total Test Cases"),
       Value = c(
@@ -149,14 +151,14 @@ server <- function(input, output) {
   reactive_reg_tree_predictions <- reactive({
     req(reactive_reg_tree())
     req(split_data()$testing_data)
-    
+
     test_data <- split_data()$testing_data
     predictions <- predict(reactive_reg_tree(), newdata = test_data)
-    
+
     # Calculate metrics
     rmse <- sqrt(mean((test_data$Delivery_Time_min - predictions)^2))
     mae <- mean(abs(test_data$Delivery_Time_min - predictions))
-    
+
     list(
       predictions = predictions,
       test_data = test_data,
@@ -179,16 +181,18 @@ server <- function(input, output) {
     data.frame(
       Actual = reactive_reg_tree_predictions()$test_data$Delivery_Time_min,
       Predicted = round(reactive_reg_tree_predictions()$predictions, 2),
-      Error = round(abs(reactive_reg_tree_predictions()$test_data$Delivery_Time_min - 
-                        reactive_reg_tree_predictions()$predictions), 2)
+      Error = round(abs(reactive_reg_tree_predictions()$test_data$Delivery_Time_min -
+        reactive_reg_tree_predictions()$predictions), 2)
     ) %>%
       head(20)
   })
 
   output$reg_tree_metrics <- renderText({
     req(reactive_reg_tree_predictions())
-    paste("RMSE:", round(reactive_reg_tree_predictions()$rmse, 2), 
-          "| MAE:", round(reactive_reg_tree_predictions()$mae, 2))
+    paste(
+      "RMSE:", round(reactive_reg_tree_predictions()$rmse, 2),
+      "| MAE:", round(reactive_reg_tree_predictions()$mae, 2)
+    )
   })
 
   output$box_before <- renderPlot({
@@ -201,19 +205,19 @@ server <- function(input, output) {
     boxplot(as.numeric(raw$Delivery_Time_min), main = "Delivery Time")
   })
 
-output$unusual_data <- renderPlot({
-  req(raw_df())
-  par(mfrow = c(2, 2))
-  raw <- raw_df()
-  visualize_data_unusual(as.numeric(raw$Distance_km))
-  visualize_data_unusual(as.numeric(raw$Preparation_Time_min))
-  visualize_data_unusual(as.numeric(raw$Courier_Experience_yrs))
-  visualize_data_unusual(as.numeric(raw$Delivery_Time_min))
-})
-output$time_of_day_pie <- renderPlot({
-  req(data()$cleaned_df)
-  visualize_data_pie(data()$cleaned_df$Time_of_Day)
-})
+  output$unusual_data <- renderPlot({
+    req(raw_df())
+    par(mfrow = c(2, 2))
+    raw <- raw_df()
+    visualize_data_unusual(as.numeric(raw$Distance_km))
+    visualize_data_unusual(as.numeric(raw$Preparation_Time_min))
+    visualize_data_unusual(as.numeric(raw$Courier_Experience_yrs))
+    visualize_data_unusual(as.numeric(raw$Delivery_Time_min))
+  })
+  output$time_of_day_pie <- renderPlot({
+    req(data()$cleaned_df)
+    visualize_data_pie(data()$cleaned_df$Time_of_Day)
+  })
 
   # ======================= Data Visualization =================
   output$tend_plot <- renderPlot({
@@ -227,34 +231,52 @@ output$time_of_day_pie <- renderPlot({
 
   output$cat_plots <- renderUI({
     req(data()$cleaned_df)
-    cat_cols <- names(data()$cleaned_df)[sapply(data()$cleaned_df, function(x) is.character(x) || is.factor(x))]
-    plot_output_list <- lapply(cat_cols, function(col) {
-      plotname <- paste0("plot_", col)
-      output[[plotname]] <- renderPlot({
-        visualize_data_table(data()$cleaned_df[[col]])
+    df <- data()$cleaned_df
+    selected_cols <- c("Weather", "Traffic_Level", "Time_of_Day", "Vehicle_Type")
+
+    list_plots <- lapply(selected_cols, function(col) {
+      output[[col]] <- renderPlot({
+        visualize_data_table(df[[col]], col)
       })
-      plotOutput(plotname)
+
+      plotOutput(col)
     })
-    do.call(tagList, plot_output_list)
+
+    do.call(tagList, list_plots)
   })
+
+
+  # ================ 3 ==========================
 
   output$relation_plots <- renderUI({
     req(data()$cleaned_df)
-    numeric_cols <- names(data()$cleaned_df)[sapply(data()$cleaned_df, is.numeric)]
-    pairs <- combn(numeric_cols, 2, simplify = FALSE)
-    plot_output_list <- lapply(pairs, function(pair) {
-      plotname <- paste0("plot_rel_", pair[1], "_", pair[2])
-      output[[plotname]] <- renderPlot({
-        visualize_data_relation(data()$cleaned_df[[pair[1]]], data()$cleaned_df[[pair[2]]],
-          main = paste(pair[1], "vs", pair[2]),
-          xlab = pair[1], ylab = pair[2]
+    df <- data()$cleaned_df
+
+    relations_cols <- list(
+      c("Delivery_Time_min", "Distance_km"),
+      c("Delivery_Time_min", "Speed_kmph")
+    )
+
+    plot_ui_list <- lapply(relations_cols, function(pair) {
+      xcol <- pair[1]
+      ycol <- pair[2]
+      plot_id <- paste0("rel_", xcol, "_", ycol)
+
+      output[[plot_id]] <- renderPlot({
+        visualize_data_relation(
+          df[[xcol]],
+          df[[ycol]],
+          main = paste(xcol, "vs", ycol),
+          xlab = xcol,
+          ylab = ycol
         )
       })
-      plotOutput(plotname)
+
+      plotOutput(plot_id, height = 300)
     })
-    do.call(tagList, plot_output_list)
+
+    do.call(tagList, plot_ui_list)
   })
-  
 
 
   # ================== just test from Ahmed Farag =====================
@@ -276,30 +298,32 @@ output$time_of_day_pie <- renderPlot({
         late_delivery_rate = mean(late_rate) * 100,
         on_time_rate = (1 - mean(late_rate)) * 100,
         avg_distance = mean(Distance_km, na.rm = TRUE),
-        .groups = 'drop'
+        .groups = "drop"
       ) %>%
       mutate(
         # Speed score (normalized 0-1, higher is better)
         speed_score = avg_speed / max(avg_speed),
-        
+
         # Reliability score (lower delivery time = better)
         reliability_score = 1 - (median_delivery_time / max(median_delivery_time)),
-        
+
         # Consistency score (lower variance = better)
         consistency_score = 1 - (delivery_time_sd / max(delivery_time_sd, na.rm = TRUE)),
-        
+
         # On-time score (higher on-time rate = better)
         on_time_score = on_time_rate / 100,
-        
+
         # Composite performance score
-        performance_score = (speed_score * 0.25 + 
-                            reliability_score * 0.35 + 
-                            consistency_score * 0.2 + 
-                            on_time_score * 0.2) * 100
+        performance_score = (speed_score * 0.25 +
+          reliability_score * 0.35 +
+          consistency_score * 0.2 +
+          on_time_score * 0.2) * 100
       ) %>%
       arrange(desc(performance_score)) %>%
-      select(Vehicle_Type, orders, avg_delivery_time, median_delivery_time, 
-             on_time_rate, avg_speed, performance_score)
+      select(
+        Vehicle_Type, orders, avg_delivery_time, median_delivery_time,
+        on_time_rate, avg_speed, performance_score
+      )
   })
 
   output$vehicle_table <- renderTable({
