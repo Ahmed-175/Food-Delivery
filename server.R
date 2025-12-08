@@ -115,7 +115,7 @@ server <- function(input, output) {
   reactive_reg_tree <- reactive({
     req(split_data()$training_data)
     rpart(
-      Delivery_Time_min ~ Traffic_Level + Time_of_Day + Vehicle_Type + Weather,
+      Delivery_Time_min ~ Traffic_Level + Time_of_Day + Vehicle_Type + Weather + Distance_km,
       data = split_data()$training_data,
       method = "anova",
       control = rpart.control(minsplit = 5)
