@@ -114,7 +114,6 @@ server <- function(input, output) {
       Delivery_Time_min ~ Traffic_Level + Time_of_Day + Vehicle_Type + Weather + Distance_km,
       data = data()$cleaned_df,
       method = "anova",
-      control = rpart.control(minsplit = 5)
     )
   })
 
