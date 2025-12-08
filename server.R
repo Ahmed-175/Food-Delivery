@@ -91,16 +91,20 @@ server <- function(input, output) {
       })
     )
   })
-
+  split_data <- reactive({
+      req(data())
+      splitted_data(data()$cleaned_df)
+    })
   reactive_tree <- reactive({
     req(data())
-    dt(data()$cleaned_df)
+    dt(split_data()$training_data,
+       split_data()$testing_data)
   })
 
   output$treePlot <- renderPlot({
-    req(reactive_tree())
+    req(reactive_tree()$model)
     rpart.plot(
-      reactive_tree(),
+      reactive_tree()$model,
       main = "Classification Tree - Late Delivery",
       type = 2,
       extra = 104,
@@ -109,15 +113,32 @@ server <- function(input, output) {
   })
 
   reactive_reg_tree <- reactive({
-    req(data())
+    req(split_data()$training_data)
     rpart(
       Delivery_Time_min ~ Traffic_Level + Time_of_Day + Vehicle_Type + Weather,
-      data = data()$cleaned_df,
+      data = split_data()$training_data,
       method = "anova",
       control = rpart.control(minsplit = 5)
     )
   })
-
+  reactive_reg_tree_predictions <- reactive({
+    req(reactive_reg_tree())
+    req(split_data()$testing_data)
+    
+    test_data <- split_data()$testing_data
+    predictions <- predict(reactive_reg_tree(), newdata = test_data)
+    
+    # Calculate metrics
+    rmse <- sqrt(mean((test_data$Delivery_Time_min - predictions)^2))
+    mae <- mean(abs(test_data$Delivery_Time_min - predictions))
+    
+    list(
+      predictions = predictions,
+      test_data = test_data,
+      rmse = rmse,
+      mae = mae
+    )
+  })
   output$treePlotreg <- renderPlot({
     req(reactive_reg_tree())
     rpart.plot(
@@ -127,6 +148,22 @@ server <- function(input, output) {
       extra = 101,
       fallen.leaves = TRUE
     )
+  })
+  output$tree_predictions <- renderTable({
+    req(reactive_reg_tree_predictions())
+    data.frame(
+      Actual = reactive_reg_tree_predictions()$test_data$Delivery_Time_min,
+      Predicted = round(reactive_reg_tree_predictions()$predictions, 2),
+      Error = round(abs(reactive_reg_tree_predictions()$test_data$Delivery_Time_min - 
+                        reactive_reg_tree_predictions()$predictions), 2)
+    ) %>%
+      head(20)
+  })
+
+  output$tree_metrics <- renderText({
+    req(reactive_reg_tree_predictions())
+    paste("RMSE:", round(reactive_reg_tree_predictions()$rmse, 2), 
+          "| MAE:", round(reactive_reg_tree_predictions()$mae, 2))
   })
 
   output$box_before <- renderPlot({

@@ -69,3 +69,8 @@ clean_data <- function(df) {
     outliers = outliers
   ))
 }
+splitted_data<-function(df){
+training_data <- df %>% slice_sample(prop = 2/3)
+testing_data<- df %>% anti_join(training_data, by = names(df))
+return(list(training_data=training_data,testing_data=testing_data))
+}

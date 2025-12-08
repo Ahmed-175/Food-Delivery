@@ -1,4 +1,4 @@
-dt <- function(df) {
+dt <- function(df,test_data) {
     df$Late_Delivery <- as.factor(df$Late_Delivery)
     tree_class <- rpart(
         Late_Delivery ~ Distance_km + Traffic_Level +
@@ -6,6 +6,6 @@ dt <- function(df) {
         data = df,
         method = "class"
     )
-
-    return(tree_class)
+    validating<- predict(tree_class, test_data, type = "class")
+    return(list(model=tree_class,predictions=validating))
 }
