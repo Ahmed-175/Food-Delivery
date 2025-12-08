@@ -111,7 +111,32 @@ server <- function(input, output) {
       fallen.leaves = TRUE
     )
   })
-
+  output$tree_predictions <- renderTable({
+    req(reactive_tree()$predictions)
+    test_data <- split_data()$testing_data
+    
+    # Calculate accuracy
+    predictions <- reactive_tree()$predictions
+    actual <- test_data$Late_Delivery
+    
+    # Confusion matrix
+    confusion <- table(Actual = actual, Predicted = predictions)
+    
+    # Calculate metrics
+    accuracy <- sum(diag(confusion)) / sum(confusion) * 100
+    precision <- confusion[2, 2] / sum(confusion[, 2]) * 100
+    recall <- confusion[2, 2] / sum(confusion[2, ]) * 100
+    
+    data.frame(
+      Metric = c("Accuracy", "Precision", "Recall", "Total Test Cases"),
+      Value = c(
+        paste0(round(accuracy, 2), "%"),
+        paste0(round(precision, 2), "%"),
+        paste0(round(recall, 2), "%"),
+        nrow(test_data)
+      )
+    )
+  })
   reactive_reg_tree <- reactive({
     req(split_data()$training_data)
     rpart(
@@ -149,7 +174,7 @@ server <- function(input, output) {
       fallen.leaves = TRUE
     )
   })
-  output$tree_predictions <- renderTable({
+  output$reg_predictions <- renderTable({
     req(reactive_reg_tree_predictions())
     data.frame(
       Actual = reactive_reg_tree_predictions()$test_data$Delivery_Time_min,
@@ -160,7 +185,7 @@ server <- function(input, output) {
       head(20)
   })
 
-  output$tree_metrics <- renderText({
+  output$reg_tree_metrics <- renderText({
     req(reactive_reg_tree_predictions())
     paste("RMSE:", round(reactive_reg_tree_predictions()$rmse, 2), 
           "| MAE:", round(reactive_reg_tree_predictions()$mae, 2))
@@ -216,6 +241,7 @@ server <- function(input, output) {
     })
     do.call(tagList, plot_output_list)
   })
+  
 
 
   # ================== just test from Ahmed Farag =====================

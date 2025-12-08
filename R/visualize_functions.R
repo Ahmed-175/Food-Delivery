@@ -37,6 +37,7 @@ visualize_data_table <- function(data) {
 }
 
 
+#histogram for frequency and distribution of numeric data (4)
 
 visualize_data_freq <- function(data, main="", xlab="", ylab="Frequency") {
   hist(data, col="purple", border="blue", main=main, xlab=xlab, ylab=ylab)
@@ -48,4 +49,16 @@ visualize_data_relation <- function(data1, data2, main="", xlab="", ylab="") {
   plot(x=data1, y=data2, main=main, xlab=xlab, ylab=ylab,
        col="black", pch=19)
 }
-
+# box plot for unusual numeric data (5)
+visualize_data_unusual <- function (data){outlier=boxplot(data)
+outlier
+}
+#table/pie delivery time distribution (8)
+visualize_data_pie <- function(data) {
+  counts <- table(data)
+  percentage=paste0(round(100*counts/sum(counts)),"%")
+  pie(counts, labels = percentage, main = "deleviry time distribution",
+      col=c("pink","lightblue","red","black"))
+  legend("bottomright", legend = c("Afternoon", "Evening" , "Morning" , "Night"),
+         fill = c("pink", "lightblue","red","black"))
+}
