@@ -220,13 +220,35 @@ server <- function(input, output) {
   })
 
   # ======================= Data Visualization =================
-  output$tend_plot <- renderPlot({
+  output$tend_plot <- renderUI({
     req(data()$cleaned_df)
-    numeric_cols <- names(data()$cleaned_df)[sapply(data()$cleaned_df, is.numeric)]
-    par(mfrow = c(length(numeric_cols), 3), mar = c(3, 3, 3, 1)) # 3 plots per column
-    for (col in numeric_cols) {
-      visualize_data_tend(data()$cleaned_df[[col]])
-    }
+
+    df <- data()$cleaned_df
+    selected_numeric_cols <- c(
+      "Delivery_Time_min",
+      "Preparation_Time_min",
+      "Distance_km",
+      "Speed_kmph"
+    )
+
+    plot_list <- lapply(selected_numeric_cols, function(col) {
+      plot_id <- paste0("tend_", col)
+
+      output[[plot_id]] <- renderPlot({
+        main_title <- paste("Analysis for Column:", col)
+
+        par(mfrow = c(2, 2))
+        plot.new()
+        title(main = main_title)
+        visualize_data_tend_mean(df[[col]], col)
+        visualize_data_tend_median(df[[col]], col)
+        visualize_data_tend_mode(df[[col]], col)
+      })
+
+      plotOutput(plot_id)
+    })
+
+    do.call(tagList, plot_list)
   })
 
   output$cat_plots <- renderUI({
