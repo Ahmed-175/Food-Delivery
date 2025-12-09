@@ -1,14 +1,14 @@
-
-
 per_weather <- function(df) {
     
  res <- df %>% 
-    group_by(Vehicle_Type)  %>%
+    group_by(Vehicle_Type, Weather) %>%
     summarise(
-        Vehicle_Type = Vehicle_Type,
-        Speed_kmph = Speed_kmph,
-        Weather = Weather
-    )
+      avg_speed = round(mean(Speed_kmph, na.rm = TRUE), 2),
+      avg_delivery_time = round(mean(Delivery_Time_min, na.rm = TRUE), 2),
+      count = n(),  # Add count to verify grouping
+      .groups = 'drop'
+    ) %>%
+    arrange(Vehicle_Type, Weather)
     
 
     return(res)
