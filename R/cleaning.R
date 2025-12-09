@@ -59,7 +59,7 @@ clean_data <- function(df) {
     )
   print(paste("Rows after cleaning:", nrow(df)))
 
-  df$Late_Delivery <- ifelse(df$Delivery_Time_min >= 40, "Yes", "No")
+  df$Late_Delivery <- ifelse(df$Delivery_Time_min >= quantile(df$Delivery_Time_min , 0.6), "Yes", "No")
   df$traffic_score <- ifelse(df$Traffic_Level == "High", 1,
     ifelse(df$Traffic_Level == "Medium", 0.5, 0)
   )

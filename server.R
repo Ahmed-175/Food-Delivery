@@ -10,6 +10,7 @@ source("R/kmeans.R")
 source("R/tree.R")
 source("R/visualize_functions.R")
 source("R/description_fun.R")
+source("R/Peformance_Weather.R")
 
 server <- function(input, output) {
   # Keep raw_df for "before cleaning" plots and for debugging
@@ -142,7 +143,7 @@ server <- function(input, output) {
   reactive_reg_tree <- reactive({
     req(split_data()$training_data)
     rpart(
-      Delivery_Time_min ~ Traffic_Level + Time_of_Day + Vehicle_Type + Weather + Distance_km,
+      Delivery_Time_min ~ Traffic_Level + Time_of_Day + Vehicle_Type +Courier_Experience_yrs + Weather + Distance_km,
       data = split_data()$training_data,
       method = "anova",
       control = rpart.control(minsplit = 5)
@@ -276,7 +277,9 @@ server <- function(input, output) {
 
     relations_cols <- list(
       c("Delivery_Time_min", "Distance_km"),
-      c("Delivery_Time_min", "Speed_kmph")
+      c("Delivery_Time_min", "Speed_kmph"),
+      c("Delivery_Time_min", "Customer_Rating"),
+      c("Speed_kmph", "Courier_Experience_yrs")
     )
 
     plot_ui_list <- lapply(relations_cols, function(pair) {
@@ -357,5 +360,11 @@ server <- function(input, output) {
         avg_speed = round(avg_speed, 2),
         avg_delivery_time = round(avg_delivery_time, 2)
       )
+  })
+
+
+  output$vehicle_per_weather <- renderTable({
+    req(data()$cleaned_df)
+    per_weather(data()$cleaned_df)
   })
 }
